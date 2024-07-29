@@ -1,0 +1,7 @@
+train: /content/dataset/train
+val: /content/dataset/val
+
+
+nc: 20
+names: ['hijab_niqab', 'mask_colorful', 'mask_surgical', 'face_no_mask', 'face_with_mask_incorrect', 'face_with_mask', 'face_other_covering', 'scarf_bandana', 'balaclava_ski_mask', 'face_shield', 'other', 'gas_mask', 'turban', 'helmet', 'sunglasses', 'eyeglasses', 'hair_net', 'hat', 'goggles', 'hood']
+

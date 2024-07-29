@@ -1,0 +1,91 @@
+import os
+import json
+from PIL import Image
+
+# Define the paths
+dataset_path = 'MaskDetection\\Original Data'
+images_path = os.path.join(dataset_path, 'images')
+labels_path = os.path.join(dataset_path, 'labels')
+output_labels = os.path.join(dataset_path, 'yolo_labels')
+
+
+os.makedirs(output_labels, exist_ok=True)
+
+classes = {
+    'hijab_niqab': 0,
+    'mask_colorful': 1,
+    'mask_surgical': 2,
+    'face_no_mask': 3,
+    'face_with_mask_incorrect': 4,
+    'face_with_mask': 5,
+    'face_other_covering': 6,
+    'scarf_bandana': 7,
+    'balaclava_ski_mask': 8,
+    'face_shield': 9,
+    'other': 10,
+    'gas_mask': 11,
+    'turban': 12,
+    'helmet': 13,
+    'sunglasses': 14,
+    'eyeglasses': 15,
+    'hair_net': 16,
+    'hat': 17,
+    'goggles': 18,
+    'hood': 19
+}
+
+def convert_annotations_to_yolo(label_dir, output_dir, images_dir, class_mapping):
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    
+    for label_file in os.listdir(label_dir):
+        if label_file.lower().endswith(('.jpg.json', '.jpeg.json', '.png.json')):
+            with open(os.path.join(label_dir, label_file), 'r') as f:
+                data = json.load(f)
+
+            image_file = data['FileName']
+            image_path = os.path.join(images_dir, image_file)
+            if not os.path.exists(image_path):
+                continue
+
+            image_width, image_height = get_image_dimensions(image_path)
+
+            yolo_annotations = []
+            for annotation in data['Annotations']:
+                classname = annotation['classname']
+                if classname in class_mapping:
+                    class_id = class_mapping[classname]
+                    bbox = annotation['BoundingBox']
+                    x_center = ((bbox[0] + bbox[2]) / 2) / image_width
+                    y_center = ((bbox[1] + bbox[3]) / 2) / image_height
+                    width = (bbox[2] - bbox[0]) / image_width
+                    height = (bbox[3] - bbox[1]) / image_height
+                    yolo_annotations.append(f"{class_id} {x_center} {y_center} {width} {height}")
+
+            base_filename, _ = os.path.splitext(image_file)
+            yolo_label_file = os.path.join(output_dir, f"{base_filename}.txt")
+            with open(yolo_label_file, 'w') as f:
+                f.write("\n".join(yolo_annotations))
+
+def get_image_dimensions(image_path):
+    with Image.open(image_path) as img:
+        return img.width, img.height
+
+convert_annotations_to_yolo(labels_path, output_labels, images_path, classes)
+
+image_files = [f for f in os.listdir(images_path) if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
+label_files = [f.replace('.jpg', '.txt').replace('.jpeg', '.txt').replace('.png', '.txt') for f in image_files]
+
+print(f"Total images found: {len(image_files)}")
+print(f"Total labels found: {len(label_files)}")
+
+image_files = [f for f in image_files if any(os.path.exists(os.path.join(output_labels, f.replace(ext, '.txt'))) for ext in ['.jpg', '.jpeg', '.png'])]
+
+label_files = []
+for image_file in image_files:
+    for ext in ['.jpg', '.jpeg', '.png']:
+        label_file = image_file.replace(ext, '.txt')
+        if os.path.exists(os.path.join(output_labels, label_file)):
+            label_files.append(label_file)
+            break  
+print(f"Total images with corresponding labels: {len(image_files)}")
